@@ -6,12 +6,12 @@ use tokio::{
     io::AsyncWriteExt,
 };
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Storage {
     pub projects: Vec<Project>,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Project {
     pub location: String,
     pub build: Option<String>,
@@ -39,7 +39,6 @@ pub async fn location() -> Option<String> {
 }
 
 pub async fn load_storage(location: &str) -> Storage {
-    println!("Load Storage: {location}");
     match fs::read_to_string(&location).await {
         Ok(data) => serde_json::from_str(&data).unwrap_or_else(|error| {
             println!("Could not load storage file: {error:?}");
@@ -58,7 +57,7 @@ pub async fn load_storage(location: &str) -> Storage {
 }
 
 /// Save storage to filesystem
-async fn save_storage(storage: Storage, location: &str) -> Result<(), std::io::Error> {
+pub async fn save_storage(storage: Storage, location: &str) -> Result<(), std::io::Error> {
     let config: String = serde_json::to_string_pretty(&storage)?;
     let mut file = File::create(location).await?;
 
