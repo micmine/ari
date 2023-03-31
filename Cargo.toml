@@ -13,3 +13,4 @@ serde_json = "1.0"
 dirs = "5.0.0"
 skim = "0.10.4"
 logana = { path = "../logana" }
+quickcfg = { path = "../quickcfg"}

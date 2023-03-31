@@ -1,30 +1,29 @@
-use std::io::Cursor;
-
 use clap::Parser;
 use config::ActionKind;
-use skim::{
-    prelude::{SkimItemReader, SkimOptionsBuilder},
-    Skim,
-};
-use storage::{Project, Storage};
+use serde::{Serialize, Deserialize};
+
+#[cfg(not(target_os = "windows"))]
+use find::select;
 
 use crate::config::Args;
 
 mod config;
-mod storage;
+
+#[cfg(not(target_os = "windows"))]
+mod find;
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
-    let storage_location = &storage::location()
+    let storage_location = &quickcfg::get_location("ari")
         .await
         .expect("Unable to get storage dir");
-    let storage = storage::load_storage(&storage_location).await;
+    let storage: Storage = quickcfg::load(storage_location).await;
 
     if let Some(project) = get_project(&args, storage.clone()) {
         if let Some(storage) = set_value(&args, &project, storage) {
-            storage::save_storage(storage, &storage_location)
+            quickcfg::save(storage, storage_location)
                 .await
                 .expect("Unable to save storage");
             return;
@@ -36,31 +35,31 @@ async fn main() {
         };
 
         if let Some(logana_parser) = &args.parser {
-            run_logana(&command, &logana_parser).await;
+            run_logana(&command, logana_parser).await;
         } else {
             println!("{command}");
         }
     }
 }
 
-fn get_project<'a>(args: &Args, storage: Storage) -> Option<Project> {
-    if args.find {
+fn get_project(args: &Args, storage: Storage) -> Option<Project> {
+    if cfg!(not(target_os = "windows")) && args.find {
         return select(storage);
     }
 
     let current = std::env::current_dir().unwrap();
     let current: &str = current.to_str().unwrap();
 
-    return storage
+    storage
         .projects
         .into_iter()
         .filter(|p| p.location == current)
-        .last();
+        .last()
 }
 
 fn set_value(args: &Args, project: &Project, storage: Storage) -> Option<Storage> {
     if let Some(set) = &args.set {
-        let mut updated_storage = storage.clone();
+        let mut updated_storage = storage;
         for p in &mut updated_storage.projects {
             if p.location == project.location {
                 match &args.action {
@@ -78,36 +77,6 @@ fn set_value(args: &Args, project: &Project, storage: Storage) -> Option<Storage
     None
 }
 
-fn select<'a>(storage: Storage) -> Option<Project> {
-    let options = SkimOptionsBuilder::default().build().unwrap();
-
-    let mut list = String::new();
-
-    for p in &storage.projects {
-        list.push_str(&p.location);
-        list.push('\n')
-    }
-
-    let item_reader = SkimItemReader::default();
-    let items = item_reader.of_bufread(Cursor::new(list));
-
-    let selected_item = Skim::run_with(&options, Some(items))
-        .map(|out| out.selected_items)
-        .unwrap_or_default();
-
-    if let Some(item) = selected_item.first() {
-        let text = item.text();
-
-        return storage
-            .projects
-            .into_iter()
-            .filter(|p| p.location == text)
-            .last();
-    }
-
-    None
-}
-
 fn get_command_from_action(action: ActionKind, project: &Project) -> Option<String> {
     match action {
         ActionKind::Build => project.build.to_owned(),
@@ -115,6 +84,20 @@ fn get_command_from_action(action: ActionKind, project: &Project) -> Option<Stri
         ActionKind::Test => project.test.to_owned(),
         ActionKind::GoTo => Some("cd ".to_owned() + &project.location),
     }
+}
+
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct Storage {
+    pub projects: Vec<Project>,
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct Project {
+    pub location: String,
+    pub build: Option<String>,
+    pub run: Option<String>,
+    pub test: Option<String>,
 }
 
 async fn run_logana(command: &str, parser: &str) {

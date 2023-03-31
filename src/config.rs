@@ -1,6 +1,5 @@
 use clap::Parser;
 
-
 /// A build log analysis tool
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -14,6 +13,7 @@ pub struct Args {
     pub set: Option<String>,
 
     /// Search for directory
+    #[cfg(not(target_os = "windows"))]
     #[clap(short, long)]
     pub find: bool,
 
