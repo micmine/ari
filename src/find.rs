@@ -5,16 +5,15 @@ use skim::{
     Skim,
 };
 
-use crate::{Storage, Project};
+use crate::{Project, Storage};
 
-
-pub fn select(storage: Storage) -> Option<Project> {
+pub fn select<'a>(storage: Storage) -> (Option<Project>, String) {
     let options = SkimOptionsBuilder::default().build().unwrap();
 
     let mut list = String::new();
 
-    for p in &storage.projects {
-        list.push_str(&p.location);
+    for location in storage.projects.keys() {
+        list.push_str(&location);
         list.push('\n')
     }
 
@@ -27,13 +26,10 @@ pub fn select(storage: Storage) -> Option<Project> {
 
     if let Some(item) = selected_item.first() {
         let text = item.text();
+        let text = text.as_ref();
 
-        return storage
-            .projects
-            .into_iter()
-            .filter(|p| p.location == text)
-            .last();
+        return (storage.projects.get(text).cloned(), text.to_string());
     }
 
-    None
+    (None, String::new())
 }

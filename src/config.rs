@@ -6,7 +6,7 @@ use clap::Parser;
 pub struct Args {
     /// Acttion to do
     #[clap(short, long, value_enum)]
-    pub action: ActionKind,
+    pub action: String,
 
     /// Overwrite option
     #[clap(short, long)]
@@ -20,12 +20,4 @@ pub struct Args {
     /// When provided the output will be analysed by logana
     #[clap(short, long)]
     pub parser: Option<String>,
-}
-
-#[derive(clap::ValueEnum, Clone, Debug)]
-pub enum ActionKind {
-    Build,
-    Run,
-    Test,
-    GoTo
 }
