@@ -31,12 +31,14 @@ async fn main() {
     }
     if let (Some(project), location) = get_project(&args, storage) {
         std::env::set_current_dir(location).unwrap();
+
+        if args.print_actions {
+            println!("{}", get_actions_string(&project, '\n'));
+            return;
+        }
+
         let Some(command) = project.actions.get(&args.action) else {
-            println!("This action is not supported here did you mean: {}", project.actions.keys()
-                     .into_iter()
-                     .map(|k| k.to_string())
-                     .intersperse(", ".to_string())
-                     .collect::<String>());
+            println!("This action is not supported here did you mean: {}", get_actions_string(&project, ','));
             return;
         };
 
@@ -66,7 +68,7 @@ fn get_project(args: &Args, storage: Storage) -> (Option<Project>, String) {
 
 fn set_value(args: &Args, storage: Storage) -> Option<Storage> {
     if let Some(set) = &args.set {
-        dbg!(set);
+        println!("Setting {} action to \"{}\"", &args.action, &set);
         let mut updated_storage = storage;
         let location = std::env::current_dir().unwrap().display().to_string();
 
@@ -88,6 +90,25 @@ fn set_value(args: &Args, storage: Storage) -> Option<Storage> {
     }
 
     None
+}
+
+fn get_actions_string(project: &Project, seperator: char) -> String {
+    // Keeping if the description makes problems
+    //project
+    //.actions
+    //.keys()
+    //.into_iter()
+    //.map(|k| k.to_string())
+    //.intersperse(seperator.to_string())
+    //.collect::<String>()
+
+    project
+        .actions
+        .clone()
+        .into_iter()
+        .map(|(a, b)| format!("{a}\t{b}"))
+        .intersperse(seperator.to_string())
+        .collect::<String>()
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]

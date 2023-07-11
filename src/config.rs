@@ -5,12 +5,16 @@ use clap::Parser;
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
     /// Acttion to do
-    #[clap(short, long, value_enum)]
+    #[clap(short, long, value_enum, default_value = "", required_unless_present = "print_actions")]
     pub action: String,
 
     /// Overwrite option
     #[clap(short, long)]
     pub set: Option<String>,
+
+    /// Prints all available actions for the current project
+    #[clap(long)]
+    pub print_actions: bool,
 
     /// Search for directory
     #[cfg(not(target_os = "windows"))]
