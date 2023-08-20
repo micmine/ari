@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    time::SystemTime,
+};
 
 use clap::Parser;
 use itertools::Itertools;
@@ -23,10 +26,23 @@ async fn main() {
         .expect("Unable to get storage dir");
     let storage: Storage = quickcfg::load(storage_location).await;
 
-    if let Some(storage) = set_value(&args, storage.clone()) {
-        quickcfg::save(storage, storage_location)
-            .await
-            .expect("Unable to save storage");
+    if let Some(new_storage) = set_value(&args, storage.clone()) {
+        let backup_file_name = format!(
+            "ari_{}.json",
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .expect("unable to get time")
+                .as_secs()
+        );
+        let backup_location = storage_location.replace("ari.json", &backup_file_name);
+        match quickcfg::save(storage, &backup_location).await {
+            Ok(_) => {
+                quickcfg::save(new_storage, storage_location)
+                    .await
+                    .expect("Unable to save storage");
+            }
+            Err(_) => todo!(),
+        };
         return;
     }
     if let (Some(project), location) = get_project(&args, storage) {
@@ -38,9 +54,9 @@ async fn main() {
         }
 
         let Some(command) = project.actions.get(&args.action) else {
-            println!("This action is not supported here did you mean: {}", get_actions_string(&project, ','));
-            return;
-        };
+        println!("This action is not supported here did you mean: {}", get_actions_string(&project, ','));
+        return;
+    };
 
         if let Some(logana_parser) = &args.parser {
             run_logana(&command, logana_parser).await;
