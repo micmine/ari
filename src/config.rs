@@ -5,7 +5,7 @@ use clap::Parser;
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
     /// Acttion to do
-    #[clap(short, long, value_enum, default_value = "", required_unless_present = "print_actions")]
+    #[clap(short, long, value_enum, default_value = "", required_unless_present_any = ["print_actions", "import"])]
     pub action: String,
 
     /// Overwrite option
@@ -20,8 +20,8 @@ pub struct Args {
     #[cfg(not(target_os = "windows"))]
     #[clap(short, long)]
     pub find: bool,
-
-    /// When provided the output will be analysed by logana
+    
+    /// Import commands from README.md
     #[clap(short, long)]
-    pub parser: Option<String>,
+    pub import: bool,
 }

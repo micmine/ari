@@ -7,7 +7,7 @@ This tool tries to help with remembering commands. Specific to a folder. It does
 To put it into concrete terms, I mostly use it in combination with https://github.com/micmine/logana and/or https://github.com/watchexec/watchexec
 
 For example this is one of my saved commands:
-``` bash
+``` command
 watchexec -r -e go 'logana -c "go run ." -p go'
 ```
 This command will build and run a go program. And if there are build errors they will be analyzed by logana and the errors of that build will be saved to a file.
