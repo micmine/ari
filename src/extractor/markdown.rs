@@ -1,8 +1,8 @@
 use super::Extractor;
 use tree_sitter::{Parser, Query, QueryCursor};
-pub struct Readme;
+pub struct Markdown;
 
-impl Extractor for Readme {
+impl Extractor for Markdown {
     fn extract_commands(content: String) -> Option<Vec<String>> {
         let mut parser = Parser::new();
         let language = tree_sitter_md::language();
@@ -19,7 +19,10 @@ impl Extractor for Readme {
             .flat_map(|(c, _)| c.captures)
             .map(|c| c.node.utf8_text(content.as_bytes()))
             .filter(|c| c.is_ok())
-            .map(|c| c.unwrap().trim().to_owned())
+            .map(|c| c.unwrap().trim())
+            .flat_map(|c| c.lines().collect::<Vec<_>>())
+            .filter(|c| !c.starts_with("#")) // remove shell comments
+            .map(|c| c.to_owned())
             .collect();
 
         return Some(commands);
@@ -28,12 +31,12 @@ impl Extractor for Readme {
 
 #[cfg(test)]
 mod tests {
-    use super::Readme;
+    use super::Markdown;
     use crate::extractor::Extractor;
 
     #[test]
     fn should_find_commands() {
-        let data = "# This a cool tool you can build it with the following command: 
+        let data = "# this a cool tool you can build it with the following command: 
 ``` command
 cargo build
 ```
@@ -43,11 +46,29 @@ cargo test
 ```
 "
         .to_string();
-        let commands = Readme::extract_commands(data);
+        let commands = Markdown::extract_commands(data);
 
         assert_eq!(
             commands,
             Some(vec!["cargo build".to_string(), "cargo test".to_string()])
+        )
+    }
+
+    #[test]
+    fn should_find_commands_in_one_block() {
+        let data = "# this a cool tool you can build it with the following command: 
+``` command
+cargo build
+# And build a release with
+cargo build --release
+```
+"
+        .to_string();
+        let commands = Markdown::extract_commands(data);
+
+        assert_eq!(
+            commands,
+            Some(vec!["cargo build".to_string(), "cargo build --release".to_string()])
         )
     }
 }

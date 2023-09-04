@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
 
-pub mod readme;
+pub mod markdown;
 
 pub trait Extractor {
     fn extract_commands(content: String) -> Option<Vec<String>>;

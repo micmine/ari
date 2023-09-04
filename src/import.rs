@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, fs};
+use std::fs;
 
-use crate::extractor::{readme::Readme, Extractor};
+use crate::extractor::{markdown::Markdown, Extractor};
 
 pub fn import() -> Option<(String, String)> {
     if let Some(command) = get_command_to_import() {
@@ -18,7 +18,7 @@ pub fn import() -> Option<(String, String)> {
 
 fn get_command_to_import() -> Option<String> {
     if let Ok(content) = fs::read_to_string("README.md") {
-        if let Some(commands) = Readme::extract_commands(content) {
+        if let Some(commands) = Markdown::extract_commands(content) {
             println!("The following commands can be imported");
             commands.clone()
                 .into_iter()
