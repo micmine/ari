@@ -13,6 +13,8 @@ use find::select;
 use crate::config::Args;
 
 mod config;
+mod extractor;
+mod import;
 
 #[cfg(not(target_os = "windows"))]
 mod find;
@@ -26,27 +28,17 @@ async fn main() {
         .expect("Unable to get storage dir");
     let storage: Storage = quickcfg::load(storage_location).await;
 
-    if let Some(new_storage) = set_value(&args, storage.clone()) {
-        let backup_file_name = format!(
-            "ari_{}.json",
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .expect("unable to get time")
-                .as_secs()
-        );
-        let backup_location = storage_location.replace("ari.json", &backup_file_name);
-        match quickcfg::save(storage, &backup_location).await {
-            Ok(_) => {
-                quickcfg::save(new_storage, storage_location)
-                    .await
-                    .expect("Unable to save storage");
+    if let (Some(project), location) = get_project(&args, &storage) {
+        std::env::set_current_dir(&location).unwrap();
+        if args.import {
+            if let Some((key, command)) = import::import() {
+                set_action(key, command, location, &storage, storage_location.to_string()).await;
             }
-            Err(_) => todo!(),
-        };
-        return;
-    }
-    if let (Some(project), location) = get_project(&args, storage) {
-        std::env::set_current_dir(location).unwrap();
+            return;
+        }
+        if set_value(&args, &storage, storage_location.to_string(), location).await {
+            return;
+        }
 
         if args.print_actions {
             println!("{}", get_actions_string(&project, '\n'));
@@ -54,20 +46,20 @@ async fn main() {
         }
 
         let Some(command) = project.actions.get(&args.action) else {
-        println!("This action is not supported here did you mean: {}", get_actions_string(&project, ','));
-        return;
-    };
+            println!(
+                "This action is not supported here did you mean: {}",
+                get_actions_string(&project, ',')
+            );
+            return;
+        };
 
-        if let Some(logana_parser) = &args.parser {
-            run_logana(&command, logana_parser).await;
-        } else {
-            println!("{command}");
-        }
+        println!("{command}");
     }
 }
 
-fn get_project(args: &Args, storage: Storage) -> (Option<Project>, String) {
-    if cfg!(not(target_os = "windows")) && args.find {
+fn get_project(args: &Args, storage: &Storage) -> (Option<Project>, String) {
+    #[cfg(not(target_os = "windows"))]
+    if args.find {
         return select(storage);
     }
 
@@ -82,30 +74,57 @@ fn get_project(args: &Args, storage: Storage) -> (Option<Project>, String) {
     (storage.projects.get(current).cloned(), current.to_string())
 }
 
-fn set_value(args: &Args, storage: Storage) -> Option<Storage> {
+async fn set_value(args: &Args, storage: &Storage, storage_location: String, project: String) -> bool {
     if let Some(set) = &args.set {
-        println!("Setting {} action to \"{}\"", &args.action, &set);
-        let mut updated_storage = storage;
-        let location = std::env::current_dir().unwrap().display().to_string();
-
-        if let Some(project) = updated_storage.projects.get_mut(&location) {
-            project
-                .actions
-                .insert(args.action.to_string(), set.to_string());
-        } else {
-            let mut newproject = Project {
-                actions: BTreeMap::new(),
-            };
-            newproject
-                .actions
-                .insert(args.action.to_string(), set.to_string());
-            updated_storage.projects.insert(location, newproject);
-        }
-
-        return Some(updated_storage);
+        set_action(
+            args.action.to_string(),
+            set.to_string(),
+            project,
+            storage,
+            storage_location,
+        )
+        .await;
+        return true;
+        //let location = std::env::current_dir().unwrap().display().to_string();
     }
 
-    None
+    return false;
+}
+async fn set_action(
+    key: String,
+    value: String,
+    project: String,
+    storage: &Storage,
+    storage_location: String,
+) {
+    println!("Setting {} action to \"{}\"", &key, &value);
+    let mut updated_storage = storage.clone();
+
+    if let Some(project) = updated_storage.projects.get_mut(&project) {
+        project.actions.insert(key, value);
+    } else {
+        let mut newproject = Project {
+            actions: BTreeMap::new(),
+        };
+        newproject.actions.insert(key, value);
+        updated_storage.projects.insert(project, newproject);
+    }
+    let backup_file_name = format!(
+        "ari_{}.json",
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("unable to get time")
+            .as_secs()
+    );
+    let backup_location = storage_location.replace("ari.json", &backup_file_name);
+    match quickcfg::save(storage.clone(), &backup_location).await {
+        Ok(_) => {
+            quickcfg::save(updated_storage, &storage_location)
+                .await
+                .expect("Unable to save storage");
+        }
+        Err(_) => todo!(),
+    };
 }
 
 fn get_actions_string(project: &Project, seperator: char) -> String {
@@ -136,14 +155,4 @@ pub struct Storage {
 pub struct Project {
     #[serde(flatten)]
     pub actions: BTreeMap<String, String>,
-}
-
-async fn run_logana(command: &str, parser: &str) {
-    let args = vec!["logana", "-p", parser, "-c", command];
-    let args = logana::core::config::Args::parse_from(args);
-    if let Ok(dir) = std::env::current_dir() {
-        if let Some(dir) = dir.to_str() {
-            logana::run(args, dir).await;
-        }
-    }
 }

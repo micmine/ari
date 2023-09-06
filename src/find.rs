@@ -7,7 +7,7 @@ use skim::{
 
 use crate::{Project, Storage};
 
-pub fn select<'a>(storage: Storage) -> (Option<Project>, String) {
+pub fn select<'a>(storage: &Storage) -> (Option<Project>, String) {
     let options = SkimOptionsBuilder::default().build().unwrap();
 
     let mut list = String::new();

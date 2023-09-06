@@ -11,6 +11,10 @@ tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 dirs = "5.0.0"
 skim = "0.10.4"
-logana = { path = "../logana" }
-quickcfg = { path = "../quickcfg"}
+quickcfg = { git = "https://github.com/micmine/quickcfg"}
 itertools = "0.11.0"
+tree-sitter = "0.20.10"
+tree-sitter-md = "0.1.5"
+
+[build-dependencies]
+cc="*"
