@@ -44,8 +44,8 @@ fn get_command_to_import() -> Option<String> {
 fn trim_line(line: String, with: usize) -> String {
     let mut line = line.replace('\n', " ").replace('\r', "");
     if line.len() >= with {
-        line = (&line[..with]).to_string();
+        line = (line[..with]).to_string();
         line.push_str("...")
     }
-    return line;
+    line
 }

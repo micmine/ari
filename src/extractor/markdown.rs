@@ -21,11 +21,11 @@ impl Extractor for Markdown {
             .filter(|c| c.is_ok())
             .map(|c| c.unwrap().trim())
             .flat_map(|c| c.lines().collect::<Vec<_>>())
-            .filter(|c| !c.starts_with("#")) // remove shell comments
+            .filter(|c| !c.starts_with('#')) // remove shell comments
             .map(|c| c.to_owned())
             .collect();
 
-        return Some(commands);
+        Some(commands)
     }
 }
 

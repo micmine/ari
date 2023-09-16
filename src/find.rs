@@ -7,13 +7,13 @@ use skim::{
 
 use crate::{Project, Storage};
 
-pub fn select<'a>(storage: &Storage) -> (Option<Project>, String) {
+pub fn select(storage: &Storage) -> (Option<Project>, String) {
     let options = SkimOptionsBuilder::default().build().unwrap();
 
     let mut list = String::new();
 
     for location in storage.projects.keys() {
-        list.push_str(&location);
+        list.push_str(location);
         list.push('\n')
     }
 

@@ -88,7 +88,7 @@ async fn set_value(args: &Args, storage: &Storage, storage_location: String, pro
         //let location = std::env::current_dir().unwrap().display().to_string();
     }
 
-    return false;
+    false
 }
 async fn set_action(
     key: String,
