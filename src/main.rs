@@ -23,6 +23,11 @@ mod find;
 async fn main() {
     let args = Args::parse();
 
+    if args.find_actions {
+        import::print_commands();
+        return;
+    }
+
     let storage_location = &quickcfg::get_location("ari")
         .await
         .expect("Unable to get storage dir");

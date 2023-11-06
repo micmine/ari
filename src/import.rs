@@ -16,6 +16,15 @@ pub fn import() -> Option<(String, String)> {
     None
 }
 
+pub fn print_commands() {
+    if let Ok(content) = fs::read_to_string("README.md") {
+        if let Some(commands) = Markdown::extract_commands(content) {
+            commands.into_iter()
+                .for_each(|c| println!("{c}"));
+        }
+    }
+}
+
 fn get_command_to_import() -> Option<String> {
     if let Ok(content) = fs::read_to_string("README.md") {
         if let Some(commands) = Markdown::extract_commands(content) {

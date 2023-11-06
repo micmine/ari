@@ -29,4 +29,10 @@ export def "aset" [action] {
   let cmd = (history | get command | last)
   ari -a $action --set $cmd
 }
+# Runns a command from README.md code blocks. (Each line of the code block is recomended separately)
+export def "ar" [] {
+  let command = (ari --find-actions | fzf)
+  nu -c $command
+  echo $command
+}
 ```
