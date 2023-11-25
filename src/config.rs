@@ -1,6 +1,6 @@
 use clap::Parser;
 
-/// A build log analysis tool
+/// A process runner for busy bees
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
